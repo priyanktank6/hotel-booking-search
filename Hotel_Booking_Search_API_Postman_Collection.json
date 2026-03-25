@@ -1,0 +1,33 @@
+{
+  "info": {
+    "name": "Hotel Booking Search API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Search Availability",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"check_in\": \"2024-01-15\",\n  \"check_out\": \"2024-01-18\",\n  \"adults\": 2,\n  \"meal_plan\": \"room_only\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/search",
+          "host": ["{{base_url}}"],
+          "path": ["api", "search"]
+        }
+      }
+    }
+  ]
+}
