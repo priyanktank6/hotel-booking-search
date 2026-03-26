@@ -6,7 +6,6 @@
 .idea
 node_modules
 vendor
-storage
 tests
 *.md
 *.log
@@ -14,3 +13,6 @@ tests
 composer.lock
 phpunit.xml
 docker-compose.yml
+# Don't ignore these:
+!storage/.gitignore
+!bootstrap/cache/.gitignore
