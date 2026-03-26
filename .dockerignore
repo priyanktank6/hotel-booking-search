@@ -1,0 +1,16 @@
+.env
+.git
+.gitignore
+.github
+.vscode
+.idea
+node_modules
+vendor
+storage
+tests
+*.md
+*.log
+.DS_Store
+composer.lock
+phpunit.xml
+docker-compose.yml
