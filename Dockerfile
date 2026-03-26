@@ -17,9 +17,6 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Configure PostgreSQL to not require SSL
-RUN echo "sslmode=disable" >> /usr/local/etc/php/conf.d/pgsql.ini
-
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
@@ -43,17 +40,24 @@ RUN mkdir -p storage/framework/{sessions,views,cache} \
 # Install PHP dependencies
 RUN composer install --no-interaction --optimize-autoloader --no-dev
 
-# Copy .env.example to .env (will be overridden by Render env vars)
+# Create .env file from example
 RUN cp .env.example .env || true
 
-# Generate app key (will be overridden by Render)
+# Generate app key
 RUN php artisan key:generate || true
 
 # Create storage link
 RUN php artisan storage:link || true
 
+# Run migrations and seeders
+RUN php artisan migrate --force || true
+RUN php artisan db:seed --force || true
+
 # Configure Apache to serve from public directory
 RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
+
+# Disable SSL requirement for PostgreSQL
+RUN echo "sslmode=disable" >> /usr/local/etc/php/conf.d/pgsql.ini
 
 EXPOSE 80
 
