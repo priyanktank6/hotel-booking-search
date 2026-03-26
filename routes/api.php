@@ -47,6 +47,32 @@ Route::get('/db-health', function () {
     }
 });
 
+// Add this route to check database tables
+Route::get('/check-tables', function () {
+    try {
+        $tables = DB::select("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
+        $tableNames = array_column($tables, 'tablename');
+        
+        $requiredTables = ['room_types', 'rooms', 'inventory', 'discounts'];
+        $existingTables = array_intersect($requiredTables, $tableNames);
+        $missingTables = array_diff($requiredTables, $tableNames);
+        
+        return response()->json([
+            'status' => 'ok',
+            'existing_tables' => $existingTables,
+            'missing_tables' => $missingTables,
+            'all_tables_exist' => empty($missingTables),
+            'total_tables' => count($tableNames),
+            'table_list' => $tableNames
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
 // Add this at the end of routes/api.php
 Route::get('/test-availability', function () {
     try {
