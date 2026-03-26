@@ -73,6 +73,132 @@ Route::get('/check-tables', function () {
     }
 });
 
+// Add this route to create tables (run once)
+Route::get('/setup-database', function () {
+    try {
+        // Check if tables exist
+        $tables = DB::select("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
+        $tableNames = array_column($tables, 'tablename');
+        
+        $created = [];
+        
+        // Create room_types table if not exists
+        if (!in_array('room_types', $tableNames)) {
+            DB::statement('
+                CREATE TABLE room_types (
+                    id BIGSERIAL PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    slug VARCHAR(255) UNIQUE NOT NULL,
+                    description TEXT,
+                    max_occupancy INTEGER DEFAULT 3,
+                    base_price INTEGER NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ');
+            $created[] = 'room_types';
+            
+            // Insert sample data
+            DB::table('room_types')->insert([
+                ['name' => 'Standard Room', 'slug' => 'standard', 'max_occupancy' => 3, 'base_price' => 100],
+                ['name' => 'Deluxe Room', 'slug' => 'deluxe', 'max_occupancy' => 3, 'base_price' => 150],
+            ]);
+        }
+        
+        // Create rooms table if not exists
+        if (!in_array('rooms', $tableNames)) {
+            DB::statement('
+                CREATE TABLE rooms (
+                    id BIGSERIAL PRIMARY KEY,
+                    room_type_id BIGINT NOT NULL REFERENCES room_types(id) ON DELETE CASCADE,
+                    room_number VARCHAR(255) UNIQUE NOT NULL,
+                    is_active BOOLEAN DEFAULT true,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ');
+            $created[] = 'rooms';
+            
+            // Insert rooms
+            for ($i = 1; $i <= 5; $i++) {
+                DB::table('rooms')->insert([
+                    ['room_type_id' => 1, 'room_number' => 'STD-' . str_pad($i, 3, '0', STR_PAD_LEFT)],
+                    ['room_type_id' => 2, 'room_number' => 'DLX-' . str_pad($i, 3, '0', STR_PAD_LEFT)],
+                ]);
+            }
+        }
+        
+        // Create inventory table if not exists
+        if (!in_array('inventory', $tableNames)) {
+            DB::statement('
+                CREATE TABLE inventory (
+                    id BIGSERIAL PRIMARY KEY,
+                    room_type_id BIGINT NOT NULL REFERENCES room_types(id) ON DELETE CASCADE,
+                    date DATE NOT NULL,
+                    total_rooms INTEGER DEFAULT 5,
+                    booked_rooms INTEGER DEFAULT 0,
+                    price INTEGER NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(room_type_id, date)
+                )
+            ');
+            $created[] = 'inventory';
+            
+            // Insert inventory for next 30 days
+            for ($i = 0; $i <= 30; $i++) {
+                $date = now()->addDays($i)->format('Y-m-d');
+                DB::table('inventory')->insert([
+                    ['room_type_id' => 1, 'date' => $date, 'total_rooms' => 5, 'booked_rooms' => rand(0, 2), 'price' => 100],
+                    ['room_type_id' => 2, 'date' => $date, 'total_rooms' => 5, 'booked_rooms' => rand(0, 2), 'price' => 150],
+                ]);
+            }
+        }
+        
+        // Create discounts table if not exists
+        if (!in_array('discounts', $tableNames)) {
+            DB::statement('
+                CREATE TABLE discounts (
+                    id BIGSERIAL PRIMARY KEY,
+                    room_type_id BIGINT NOT NULL REFERENCES room_types(id) ON DELETE CASCADE,
+                    type VARCHAR(50) NOT NULL,
+                    min_nights INTEGER,
+                    max_nights INTEGER,
+                    days_before_checkin INTEGER,
+                    discount_percentage DECIMAL(5,2) NOT NULL,
+                    is_active BOOLEAN DEFAULT true,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ');
+            $created[] = 'discounts';
+            
+            // Insert discounts
+            DB::table('discounts')->insert([
+                ['room_type_id' => 1, 'type' => 'long_stay', 'min_nights' => 3, 'max_nights' => 6, 'discount_percentage' => 10, 'is_active' => true],
+                ['room_type_id' => 1, 'type' => 'long_stay', 'min_nights' => 7, 'max_nights' => null, 'discount_percentage' => 15, 'is_active' => true],
+                ['room_type_id' => 2, 'type' => 'long_stay', 'min_nights' => 3, 'max_nights' => 6, 'discount_percentage' => 12, 'is_active' => true],
+                ['room_type_id' => 2, 'type' => 'long_stay', 'min_nights' => 7, 'max_nights' => null, 'discount_percentage' => 18, 'is_active' => true],
+                ['room_type_id' => 1, 'type' => 'last_minute', 'days_before_checkin' => 3, 'discount_percentage' => 20, 'is_active' => true],
+                ['room_type_id' => 2, 'type' => 'last_minute', 'days_before_checkin' => 3, 'discount_percentage' => 25, 'is_active' => true],
+            ]);
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'tables_created' => $created,
+            'message' => 'Database setup completed',
+            'all_tables_exist' => true
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+            'line' => $e->getLine()
+        ], 500);
+    }
+});
+
 // Add this at the end of routes/api.php
 Route::get('/test-availability', function () {
     try {
