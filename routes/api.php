@@ -73,7 +73,6 @@ Route::get('/check-tables', function () {
     }
 });
 
-// Add this route to create tables (run once)
 Route::get('/setup-database', function () {
     try {
         // Check if tables exist
@@ -100,8 +99,8 @@ Route::get('/setup-database', function () {
             
             // Insert sample data
             DB::table('room_types')->insert([
-                ['name' => 'Standard Room', 'slug' => 'standard', 'max_occupancy' => 3, 'base_price' => 100],
-                ['name' => 'Deluxe Room', 'slug' => 'deluxe', 'max_occupancy' => 3, 'base_price' => 150],
+                ['name' => 'Standard Room', 'slug' => 'standard', 'description' => 'Comfortable standard room', 'max_occupancy' => 3, 'base_price' => 100, 'created_at' => now(), 'updated_at' => now()],
+                ['name' => 'Deluxe Room', 'slug' => 'deluxe', 'description' => 'Spacious deluxe room', 'max_occupancy' => 3, 'base_price' => 150, 'created_at' => now(), 'updated_at' => now()],
             ]);
         }
         
@@ -122,8 +121,18 @@ Route::get('/setup-database', function () {
             // Insert rooms
             for ($i = 1; $i <= 5; $i++) {
                 DB::table('rooms')->insert([
-                    ['room_type_id' => 1, 'room_number' => 'STD-' . str_pad($i, 3, '0', STR_PAD_LEFT)],
-                    ['room_type_id' => 2, 'room_number' => 'DLX-' . str_pad($i, 3, '0', STR_PAD_LEFT)],
+                    'room_type_id' => 1,
+                    'room_number' => 'STD-' . str_pad($i, 3, '0', STR_PAD_LEFT),
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+                DB::table('rooms')->insert([
+                    'room_type_id' => 2,
+                    'room_number' => 'DLX-' . str_pad($i, 3, '0', STR_PAD_LEFT),
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now()
                 ]);
             }
         }
@@ -149,8 +158,22 @@ Route::get('/setup-database', function () {
             for ($i = 0; $i <= 30; $i++) {
                 $date = now()->addDays($i)->format('Y-m-d');
                 DB::table('inventory')->insert([
-                    ['room_type_id' => 1, 'date' => $date, 'total_rooms' => 5, 'booked_rooms' => rand(0, 2), 'price' => 100],
-                    ['room_type_id' => 2, 'date' => $date, 'total_rooms' => 5, 'booked_rooms' => rand(0, 2), 'price' => 150],
+                    'room_type_id' => 1,
+                    'date' => $date,
+                    'total_rooms' => 5,
+                    'booked_rooms' => rand(0, 2),
+                    'price' => 100,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+                DB::table('inventory')->insert([
+                    'room_type_id' => 2,
+                    'date' => $date,
+                    'total_rooms' => 5,
+                    'booked_rooms' => rand(0, 2),
+                    'price' => 150,
+                    'created_at' => now(),
+                    'updated_at' => now()
                 ]);
             }
         }
@@ -173,21 +196,84 @@ Route::get('/setup-database', function () {
             ');
             $created[] = 'discounts';
             
-            // Insert discounts
+            // Insert discounts individually
             DB::table('discounts')->insert([
-                ['room_type_id' => 1, 'type' => 'long_stay', 'min_nights' => 3, 'max_nights' => 6, 'discount_percentage' => 10, 'is_active' => true],
-                ['room_type_id' => 1, 'type' => 'long_stay', 'min_nights' => 7, 'max_nights' => null, 'discount_percentage' => 15, 'is_active' => true],
-                ['room_type_id' => 2, 'type' => 'long_stay', 'min_nights' => 3, 'max_nights' => 6, 'discount_percentage' => 12, 'is_active' => true],
-                ['room_type_id' => 2, 'type' => 'long_stay', 'min_nights' => 7, 'max_nights' => null, 'discount_percentage' => 18, 'is_active' => true],
-                ['room_type_id' => 1, 'type' => 'last_minute', 'days_before_checkin' => 3, 'discount_percentage' => 20, 'is_active' => true],
-                ['room_type_id' => 2, 'type' => 'last_minute', 'days_before_checkin' => 3, 'discount_percentage' => 25, 'is_active' => true],
+                'room_type_id' => 1,
+                'type' => 'long_stay',
+                'min_nights' => 3,
+                'max_nights' => 6,
+                'days_before_checkin' => null,
+                'discount_percentage' => 10,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+            
+            DB::table('discounts')->insert([
+                'room_type_id' => 1,
+                'type' => 'long_stay',
+                'min_nights' => 7,
+                'max_nights' => null,
+                'days_before_checkin' => null,
+                'discount_percentage' => 15,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+            
+            DB::table('discounts')->insert([
+                'room_type_id' => 2,
+                'type' => 'long_stay',
+                'min_nights' => 3,
+                'max_nights' => 6,
+                'days_before_checkin' => null,
+                'discount_percentage' => 12,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+            
+            DB::table('discounts')->insert([
+                'room_type_id' => 2,
+                'type' => 'long_stay',
+                'min_nights' => 7,
+                'max_nights' => null,
+                'days_before_checkin' => null,
+                'discount_percentage' => 18,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+            
+            DB::table('discounts')->insert([
+                'room_type_id' => 1,
+                'type' => 'last_minute',
+                'min_nights' => null,
+                'max_nights' => null,
+                'days_before_checkin' => 3,
+                'discount_percentage' => 20,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+            
+            DB::table('discounts')->insert([
+                'room_type_id' => 2,
+                'type' => 'last_minute',
+                'min_nights' => null,
+                'max_nights' => null,
+                'days_before_checkin' => 3,
+                'discount_percentage' => 25,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now()
             ]);
         }
         
         return response()->json([
             'status' => 'success',
             'tables_created' => $created,
-            'message' => 'Database setup completed',
+            'message' => 'Database setup completed successfully',
             'all_tables_exist' => true
         ]);
     } catch (\Exception $e) {
