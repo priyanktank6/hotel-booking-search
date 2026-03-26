@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     curl \
+    postgresql-client \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) gd pdo pdo_pgsql pgsql zip \
     && a2enmod rewrite \
@@ -49,9 +50,10 @@ RUN php artisan key:generate || true
 # Create storage link
 RUN php artisan storage:link || true
 
-# Run migrations and seeders
-RUN php artisan migrate --force || true
-RUN php artisan db:seed --force || true
+# Wait for database and run migrations
+RUN echo "Waiting for database..." && sleep 10 && \
+    php artisan migrate --force || echo "Migration failed but continuing" && \
+    php artisan db:seed --force || echo "Seeding failed but continuing"
 
 # Configure Apache to serve from public directory
 RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
@@ -60,5 +62,8 @@ RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available
 RUN echo "sslmode=disable" >> /usr/local/etc/php/conf.d/pgsql.ini
 
 EXPOSE 80
+
+# Run setup script
+RUN php setup-database.php || true
 
 CMD ["apache2-foreground"]
