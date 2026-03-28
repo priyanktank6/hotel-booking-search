@@ -61,6 +61,10 @@ RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available
 # Disable SSL requirement for PostgreSQL
 RUN echo "sslmode=disable" >> /usr/local/etc/php/conf.d/pgsql.ini
 
+# Run migrations and seeders during build
+RUN php artisan migrate --force || true
+RUN php artisan db:seed --force || true
+
 EXPOSE 80
 
 # Run setup script
