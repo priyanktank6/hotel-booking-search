@@ -26,5 +26,5 @@ A Laravel-based hotel booking search API that provides room availability and pri
 
 1. Clone the repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/priyanktank6/hotel-booking-search.git
 cd hotel-booking-search
