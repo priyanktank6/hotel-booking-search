@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\RoomType;
+use App\Models\RatePlan;
 use App\Models\Inventory;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -19,16 +20,18 @@ class RoomAvailabilityService
     /**
      * Get available rooms for given dates and criteria
      */
-    public function getAvailableRooms(Carbon $checkIn, Carbon $checkOut, int $adults, string $mealPlan): array
+    public function getAvailableRooms(Carbon $checkIn, Carbon $checkOut, int $adults, ?string $ratePlanCode = null): array
     {
         $nights = $checkIn->diffInDays($checkOut);
         $dates = $this->getDateRange($checkIn, $checkOut);
         
-        // Get all room types
-        $roomTypes = RoomType::with('discounts')->get();
+        // Get all active room types
+        $roomTypes = RoomType::with(['ratePlans' => function($query) {
+            $query->where('is_active', true);
+        }, 'ratePlans.discounts'])->get();
         
         if ($roomTypes->isEmpty()) {
-            return $this->formatResponse($checkIn, $checkOut, $nights, $adults, $mealPlan, []);
+            return $this->formatResponse($checkIn, $checkOut, $nights, $adults, []);
         }
         
         $availableRooms = [];
@@ -36,41 +39,63 @@ class RoomAvailabilityService
         foreach ($roomTypes as $roomType) {
             // Check if room can accommodate the number of adults
             if ($roomType->max_occupancy < $adults) {
+                \Log::info("Room type {$roomType->name} cannot accommodate {$adults} adults");
                 continue;
             }
             
-            // Check availability for the date range
-            $availabilityData = $this->checkRoomTypeAvailability($roomType, $dates);
+            // Get applicable rate plans for this room type
+            $ratePlans = $roomType->ratePlans;
+
+            \Log::info("Checking room type: {$roomType->name}, Rate plans found: " . $ratePlans->count());
             
-            if ($availabilityData['available']) {
-                // Calculate pricing
-                $pricing = $this->pricingCalculator->calculate(
-                    $roomType,
-                    $availabilityData['daily_prices'],
-                    $nights,
-                    $checkIn,
-                    $mealPlan
-                );
+            // If specific rate plan requested, filter
+            if ($ratePlanCode) {
+                $ratePlans = $ratePlans->where('code', $ratePlanCode);
+                \Log::info("Filtered by rate plan code: {$ratePlanCode}, Found: " . $ratePlans->count());
+            }
+            
+            foreach ($ratePlans as $ratePlan) {
+                \Log::info("Checking rate plan: {$ratePlan->code} for {$roomType->name}");
+                // Check availability for the date range with this rate plan
+                $availabilityData = $this->checkRoomTypeAvailability($roomType, $ratePlan, $dates);
                 
-                $availableRooms[] = [
-                    'room_type' => [
-                        'id' => $roomType->id,
-                        'name' => $roomType->name,
-                        'slug' => $roomType->slug,
-                        'description' => $roomType->description,
-                        'max_occupancy' => $roomType->max_occupancy,
-                    ],
-                    'availability' => [
-                        'available_rooms' => $availabilityData['max_rooms_available'],
-                        'daily_breakdown' => $availabilityData['daily_breakdown'],
-                    ],
-                    'pricing' => $pricing,
-                    'stay_details' => [
-                        'nights' => $nights,
-                        'adults' => $adults,
-                        'meal_plan' => $mealPlan,
-                    ],
-                ];
+                if ($availabilityData['available']) {
+                    // Calculate pricing with rate plan and discounts
+                    $pricing = $this->pricingCalculator->calculate(
+                        $roomType,
+                        $ratePlan,
+                        $availabilityData['daily_prices'],
+                        $nights,
+                        $checkIn
+                    );
+                    
+                    $availableRooms[] = [
+                        'room_type' => [
+                            'id' => $roomType->id,
+                            'name' => $roomType->name,
+                            'slug' => $roomType->slug,
+                            'description' => $roomType->description,
+                            'max_occupancy' => $roomType->max_occupancy,
+                            'min_occupancy' => $roomType->min_occupancy,
+                        ],
+                        'rate_plan' => [
+                            'id' => $ratePlan->id,
+                            'code' => $ratePlan->code,
+                            'name' => $ratePlan->name,
+                            'description' => $ratePlan->description,
+                            'meal_charge_per_night' => $ratePlan->meal_charge_per_night,
+                        ],
+                        'availability' => [
+                            'available_rooms' => $availabilityData['max_rooms_available'],
+                            'daily_breakdown' => $availabilityData['daily_breakdown'],
+                        ],
+                        'pricing' => $pricing,
+                        'stay_details' => [
+                            'nights' => $nights,
+                            'adults' => $adults,
+                        ],
+                    ];
+                }
             }
         }
         
@@ -79,32 +104,42 @@ class RoomAvailabilityService
             $checkOut, 
             $nights, 
             $adults, 
-            $mealPlan, 
             $availableRooms
         );
     }
     
     /**
-     * Check availability for a specific room type across date range
+     * Check availability for a specific room type and rate plan across date range
      */
-    private function checkRoomTypeAvailability(RoomType $roomType, array $dates): array
+    private function checkRoomTypeAvailability(RoomType $roomType, RatePlan $ratePlan, array $dates): array
     {
         $dateStrings = array_map(fn($date) => $date->format('Y-m-d'), $dates);
         
-        // Get inventory for all requested dates
+        Log::info('Checking availability', [
+            'room_type' => $roomType->name,
+            'rate_plan' => $ratePlan->code,
+            'dates' => $dateStrings,
+            'rate_plan_id' => $ratePlan->id
+        ]);
+        
+        // Get inventory for all requested dates with this rate plan
         $inventory = Inventory::where('room_type_id', $roomType->id)
+            ->where('rate_plan_id', $ratePlan->id)
             ->whereIn('date', $dateStrings)
             ->get();
+        
+        Log::info('Inventory found', [
+            'count' => $inventory->count(),
+            'dates_found' => $inventory->pluck('date')->toArray()
+        ]);
         
         // Check if we have inventory for all dates
         if ($inventory->count() !== count($dates)) {
             $foundDates = $inventory->pluck('date')->toArray();
             $missingDates = array_diff($dateStrings, $foundDates);
             
-            Log::warning("Missing inventory for {$roomType->name}", [
+            Log::warning("Missing inventory for {$roomType->name} - {$ratePlan->name}", [
                 'missing_dates' => $missingDates,
-                'total_needed' => count($dates),
-                'total_found' => $inventory->count()
             ]);
             
             return [
@@ -120,21 +155,25 @@ class RoomAvailabilityService
         $minAvailableRooms = PHP_INT_MAX;
         $allDatesAvailable = true;
         
-        // Create a map for quick lookup using string dates as keys
+        // Create a map with Y-m-d format as key for easy lookup
         $inventoryMap = [];
         foreach ($inventory as $item) {
-            // Convert date to string for array key
-            $dateKey = $item->date instanceof Carbon ? $item->date->format('Y-m-d') : $item->date;
+            // Convert the date to Y-m-d format for the key
+            if ($item->date instanceof Carbon) {
+                $dateKey = $item->date->format('Y-m-d');
+            } else {
+                $dateKey = date('Y-m-d', strtotime($item->date));
+            }
             $inventoryMap[$dateKey] = $item;
         }
         
         // Check each date
         foreach ($dates as $date) {
             $dateString = $date->format('Y-m-d');
+            $inventoryItem = $inventoryMap[$dateString] ?? null;
             
-            // Safety check - ensure inventory exists
-            if (!isset($inventoryMap[$dateString])) {
-                Log::error("Inventory not found for {$roomType->name} on {$dateString}");
+            if (!$inventoryItem) {
+                Log::error("Inventory item not found for {$roomType->name} - {$ratePlan->name} on {$dateString}");
                 return [
                     'available' => false,
                     'max_rooms_available' => 0,
@@ -142,8 +181,6 @@ class RoomAvailabilityService
                     'daily_breakdown' => $this->createEmptyDailyBreakdown($dateStrings),
                 ];
             }
-            
-            $inventoryItem = $inventoryMap[$dateString];
             
             // Safely calculate available rooms
             $totalRooms = $inventoryItem->total_rooms ?? 0;
@@ -221,7 +258,6 @@ class RoomAvailabilityService
         Carbon $checkOut, 
         int $nights, 
         int $adults, 
-        string $mealPlan, 
         array $availableRooms
     ): array {
         return [
@@ -230,14 +266,9 @@ class RoomAvailabilityService
                 'check_out' => $checkOut->format('Y-m-d'),
                 'nights' => $nights,
                 'adults' => $adults,
-                'meal_plan' => $mealPlan,
             ],
-            'available_room_types' => $availableRooms,
+            'available_options' => $availableRooms,
             'total_results' => count($availableRooms),
-            'summary' => [
-                'total_room_types_checked' => \App\Models\RoomType::count(),
-                'available_room_types' => count($availableRooms),
-            ],
         ];
     }
 }

@@ -25,7 +25,7 @@ class SearchController extends Controller
             $checkIn = Carbon::parse($request->check_in);
             $checkOut = Carbon::parse($request->check_out);
             $adults = (int) $request->adults;
-            $mealPlan = $request->meal_plan;
+            $ratePlanCode = $request->rate_plan_code ?? null;
             
             // Validate that check-out is after check-in
             if ($checkOut->lte($checkIn)) {
@@ -40,7 +40,7 @@ class SearchController extends Controller
                 $checkIn,
                 $checkOut,
                 $adults,
-                $mealPlan
+                $ratePlanCode
             );
             
             return response()->json([

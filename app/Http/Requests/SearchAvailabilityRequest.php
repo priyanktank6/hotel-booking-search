@@ -17,7 +17,7 @@ class SearchAvailabilityRequest extends FormRequest
             'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
             'adults' => 'required|integer|min:1|max:6',
-            'meal_plan' => 'required|in:room_only,breakfast_included',
+            'rate_plan_code' => 'nullable|string|in:EP,CP,MAP',
         ];
     }
 
@@ -31,8 +31,7 @@ class SearchAvailabilityRequest extends FormRequest
             'adults.required' => 'Number of adults is required',
             'adults.min' => 'At least 1 adult is required',
             'adults.max' => 'Maximum 6 adults allowed',
-            'meal_plan.required' => 'Meal plan selection is required',
-            'meal_plan.in' => 'Invalid meal plan selected',
+            'rate_plan_code.in' => 'Invalid rate plan selected. Valid options: EP, CP, MAP',
         ];
     }
 }

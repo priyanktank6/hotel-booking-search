@@ -10,7 +10,7 @@ class RoomType extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'slug', 'description', 'max_occupancy', 'base_price'];
+    protected $fillable = ['name', 'slug', 'description', 'max_occupancy', 'min_occupancy', 'base_price'];
 
     public function rooms(): HasMany
     {
@@ -20,6 +20,11 @@ class RoomType extends Model
     public function inventory(): HasMany
     {
         return $this->hasMany(Inventory::class);
+    }
+
+    public function ratePlans(): HasMany
+    {
+        return $this->hasMany(RatePlan::class);
     }
 
     public function discounts(): HasMany

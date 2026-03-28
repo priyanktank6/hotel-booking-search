@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Inventory;
 use App\Models\RoomType;
+use App\Models\RatePlan;
 use Carbon\Carbon;
 
 class InventoryTableSeeder extends Seeder
@@ -16,12 +17,17 @@ class InventoryTableSeeder extends Seeder
         $deluxe = RoomType::where('slug', 'deluxe')->first();
         
         if (!$standard || !$deluxe) {
-            $this->command->error('Room types not found! Please run RoomTypesTableSeeder first.');
+            $this->command->error('Room types not found! Run RoomTypesTableSeeder first.');
             return;
         }
         
-        // Clear existing inventory
-        Inventory::truncate();
+        // Get all rate plans
+        $ratePlans = RatePlan::all();
+        
+        if ($ratePlans->isEmpty()) {
+            $this->command->error('Rate plans not found! Run RatePlansTableSeeder first.');
+            return;
+        }
         
         // Generate inventory for next 90 days
         $startDate = Carbon::today();
@@ -30,39 +36,33 @@ class InventoryTableSeeder extends Seeder
         $current = $startDate->copy();
         $createdCount = 0;
         
+        // Clear existing inventory
+        Inventory::truncate();
+        
         while ($current->lte($endDate)) {
             $dateString = $current->format('Y-m-d');
             
-            // Standard room inventory - ensure at least 2-3 rooms available
-            $standardBooked = rand(0, 2); // Random between 0-2 booked, leaving 3-5 available
-            $standardPrice = $this->getDynamicPrice(100, $current);
+            // Create inventory for each rate plan
+            foreach ($ratePlans as $ratePlan) {
+                $basePrice = $ratePlan->roomType->base_price;
+                $bookedRooms = rand(0, 2); // Random bookings for testing
+                $dynamicPrice = $this->getDynamicPrice($basePrice, $current);
+                
+                Inventory::create([
+                    'room_type_id' => $ratePlan->room_type_id,
+                    'rate_plan_id' => $ratePlan->id,
+                    'date' => $dateString,
+                    'total_rooms' => 5,
+                    'booked_rooms' => $bookedRooms,
+                    'price' => $dynamicPrice,
+                ]);
+                $createdCount++;
+            }
             
-            Inventory::create([
-                'room_type_id' => $standard->id,
-                'date' => $dateString,
-                'total_rooms' => 5,
-                'booked_rooms' => $standardBooked,
-                'price' => $standardPrice,
-            ]);
-            
-            // Deluxe room inventory - ensure at least 2-3 rooms available
-            $deluxeBooked = rand(0, 2); // Random between 0-2 booked, leaving 3-5 available
-            $deluxePrice = $this->getDynamicPrice(150, $current);
-            
-            Inventory::create([
-                'room_type_id' => $deluxe->id,
-                'date' => $dateString,
-                'total_rooms' => 5,
-                'booked_rooms' => $deluxeBooked,
-                'price' => $deluxePrice,
-            ]);
-            
-            $createdCount++;
             $current->addDay();
         }
         
-        $this->command->info("Created {$createdCount} days of inventory for both room types");
-        $this->command->info("Total inventory records: " . Inventory::count());
+        $this->command->info("Created {$createdCount} inventory records for all rate plans");
     }
     
     private function getDynamicPrice($basePrice, Carbon $date): int

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Hotel Booking Search - Test Interface</title>
+    <title>Hotel Booking Search</title>
     <style>
         * {
             margin: 0;
@@ -20,7 +20,7 @@
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
         
@@ -36,6 +36,17 @@
             color: #333;
             margin-bottom: 10px;
             font-size: 28px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+            background: #667eea;
+            color: white;
         }
         
         .subtitle {
@@ -88,10 +99,6 @@
             transform: translateY(-2px);
         }
         
-        button:active {
-            transform: translateY(0);
-        }
-        
         .loading {
             display: none;
             text-align: center;
@@ -118,101 +125,90 @@
         
         .results {
             display: none;
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            margin-top: 20px;
         }
         
-        .room-card {
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 20px;
+        .room-option-card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
             margin-bottom: 20px;
-            border-left: 4px solid #667eea;
+            border-left: 5px solid #667eea;
             transition: all 0.3s ease;
         }
         
-        .room-card:hover {
+        .room-option-card:hover {
             transform: translateX(5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .room-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
         }
         
         .room-title {
-            font-size: 22px;
+            font-size: 24px;
             font-weight: bold;
             color: #333;
-            margin-bottom: 10px;
         }
         
-        .room-description {
+        .rate-plan-badge {
+            background: #28a745;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .occupancy-info {
             color: #666;
             margin-bottom: 15px;
-            line-height: 1.5;
+            font-size: 14px;
         }
         
-        .price-section {
-            background: white;
-            border-radius: 10px;
+        .price-breakdown {
+            background: #f8f9fa;
+            border-radius: 12px;
             padding: 15px;
-            margin-top: 15px;
+            margin: 15px 0;
         }
         
-        .price {
-            font-size: 28px;
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .price-row:last-child {
+            border-bottom: none;
+        }
+        
+        .total-price {
+            font-size: 24px;
             font-weight: bold;
             color: #28a745;
+            margin-top: 10px;
         }
         
-        .price-label {
-            font-size: 14px;
-            color: #666;
-            margin-left: 5px;
-        }
-        
-        .discount {
-            color: #dc3545;
-            font-weight: bold;
-            background: #fff5f5;
-            padding: 8px 12px;
-            border-radius: 8px;
-            margin: 10px 0;
-        }
-        
-        .meal-plan {
-            background: #e3f2fd;
-            padding: 8px 12px;
-            border-radius: 8px;
-            margin: 10px 0;
-            color: #1976d2;
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
+        .discount-badge {
+            background: #dc3545;
+            color: white;
+            padding: 8px 15px;
             border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-right: 10px;
+            font-size: 14px;
+            display: inline-block;
+            margin: 10px 0;
         }
         
-        .badge-success {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .badge-warning {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .error-message {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-            border-left: 4px solid #dc3545;
+        .row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
         }
         
         .info-message {
@@ -221,19 +217,49 @@
             padding: 15px;
             border-radius: 10px;
             margin-top: 20px;
-            border-left: 4px solid #17a2b8;
         }
         
-        .row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
         }
         
-        hr {
-            margin: 20px 0;
-            border: none;
-            border-top: 2px solid #e0e0e0;
+        details {
+            margin-top: 15px;
+        }
+        
+        summary {
+            cursor: pointer;
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        th {
+            background: #f0f0f0;
+        }
+        
+        .available-badge {
+            background: #28a745;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            display: inline-block;
         }
     </style>
 </head>
@@ -241,7 +267,7 @@
     <div class="container">
         <div class="search-card">
             <h1>🏨 Hotel Booking Search</h1>
-            <p class="subtitle">Find the best rooms at the best prices</p>
+            <p class="subtitle">Variable Occupancy | Multiple Rate Plans | Configurable Discounts</p>
             
             <form id="searchForm">
                 <div class="row">
@@ -258,13 +284,16 @@
                     <div class="form-group">
                         <label>👥 Number of Adults</label>
                         <input type="number" id="adults" min="1" max="6" value="2" required>
+                        <small style="color: #666;">Standard: max 3 | Deluxe: max 4</small>
                     </div>
                     
                     <div class="form-group">
-                        <label>🍽️ Meal Plan</label>
-                        <select id="meal_plan">
-                            <option value="room_only">Room Only</option>
-                            <option value="breakfast_included">Breakfast Included</option>
+                        <label>🍽️ Rate Plan (Optional)</label>
+                        <select id="rate_plan_code">
+                            <option value="">All Rate Plans</option>
+                            <option value="EP">EP - Room Only</option>
+                            <option value="CP">CP - Breakfast Included</option>
+                            <option value="MAP">MAP - All Meals Included</option>
                         </select>
                     </div>
                 </div>
@@ -282,11 +311,11 @@
     </div>
 
     <script>
-        // Set default dates (tomorrow and 3 days after)
+        // Set default dates
         const today = new Date();
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
-        
+
         const checkout = new Date(tomorrow);
         checkout.setDate(checkout.getDate() + 3);
         
@@ -300,7 +329,7 @@
             const checkIn = document.getElementById('check_in').value;
             const checkOut = document.getElementById('check_out').value;
             const adults = document.getElementById('adults').value;
-            const mealPlan = document.getElementById('meal_plan').value;
+            const ratePlanCode = document.getElementById('rate_plan_code').value;
             
             // Validate dates
             if (!checkIn || !checkOut) {
@@ -319,6 +348,16 @@
             loading.style.display = 'block';
             resultsDiv.style.display = 'none';
             
+            const requestBody = {
+                check_in: checkIn,
+                check_out: checkOut,
+                adults: parseInt(adults)
+            };
+            
+            if (ratePlanCode) {
+                requestBody.rate_plan_code = ratePlanCode;
+            }
+            
             try {
                 const response = await fetch('/api/search', {
                     method: 'POST',
@@ -327,15 +366,13 @@
                         'Accept': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     },
-                    body: JSON.stringify({
-                        check_in: checkIn,
-                        check_out: checkOut,
-                        adults: parseInt(adults),
-                        meal_plan: mealPlan
-                    })
+                    body: JSON.stringify(requestBody)
                 });
                 
                 const data = await response.json();
+
+                // DEBUG: Log the actual response
+                console.log('API Response:', data);
                 
                 loading.style.display = 'none';
                 resultsDiv.style.display = 'block';
@@ -348,7 +385,7 @@
             } catch (error) {
                 loading.style.display = 'none';
                 resultsDiv.style.display = 'block';
-                resultsDiv.innerHTML = `<div class="error-message">❌ Connection Error: ${error.message}<br><br>Make sure Laravel is running with: php artisan serve</div>`;
+                resultsDiv.innerHTML = `<div class="error-message">❌ Connection Error: ${error.message}</div>`;
                 console.error('Error:', error);
             }
         });
@@ -368,8 +405,10 @@
                 return;
             }
             
-            // Check total results
-            if (data.total_results === 0 || !data.available_room_types || data.available_room_types.length === 0) {
+            // Check if available_options exists (Round 2 structure) or available_room_types (Round 1)
+            const options = data.available_options || data.available_room_types;
+            
+            if (!options || options.length === 0) {
                 resultsDiv.innerHTML = `
                     <div class="info-message">
                         <strong>ℹ️ No rooms available</strong><br><br>
@@ -377,23 +416,21 @@
                         Check-in: ${data.search_criteria.check_in}<br>
                         Check-out: ${data.search_criteria.check_out}<br>
                         Nights: ${data.search_criteria.nights}<br>
-                        Adults: ${data.search_criteria.adults}<br>
-                        Meal Plan: ${data.search_criteria.meal_plan === 'room_only' ? 'Room Only' : 'Breakfast Included'}<br><br>
+                        Adults: ${data.search_criteria.adults}<br><br>
                         <strong>Possible reasons:</strong><br>
-                        • All rooms are booked for these dates<br>
-                        • Inventory not available for these dates<br>
-                        • Maximum occupancy exceeded<br>
+                        • No rooms available for these dates<br>
+                        • Maximum occupancy exceeded (Standard: 3, Deluxe: 4)<br>
+                        • Selected rate plan not available<br>
                         • Try different dates
                     </div>
                 `;
                 return;
             }
             
-            // Display search criteria
+             // Display search criteria
             let html = `
                 <div class="info-message">
-                    <strong>✅ Search Results</strong><br>
-                    Found ${data.total_results} room type(s) for your stay
+                    <strong>✅ Found ${options.length} option(s)</strong>
                 </div>
                 
                 <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 10px;">
@@ -401,86 +438,94 @@
                     Check-in: ${data.search_criteria.check_in}<br>
                     Check-out: ${data.search_criteria.check_out}<br>
                     Nights: ${data.search_criteria.nights}<br>
-                    Adults: ${data.search_criteria.adults}<br>
-                    Meal Plan: ${data.search_criteria.meal_plan === 'room_only' ? 'Room Only' : 'Breakfast Included'}
+                    Adults: ${data.search_criteria.adults}
                 </div>
             `;
             
-            // Display each room type
-            data.available_room_types.forEach((room, index) => {
-                // Check if pricing exists
-                const pricing = room.pricing || {};
+            options.forEach((option) => {
+                const pricing = option.pricing || {};
                 const breakdown = pricing.breakdown || {};
                 const nightlyRate = pricing.nightly_rate || {};
                 const discounts = pricing.discounts || {};
                 const appliedDiscounts = discounts.applied || [];
+                const ratePlanInfo = option.rate_plan || {};
+                const roomTypeInfo = option.room_type || {};
+                const availability = option.availability || {};
                 
                 html += `
-                    <div class="room-card">
-                        <div class="room-title">
-                            ${room.room_type.name}
-                            <span class="badge badge-success">${room.availability.available_rooms} rooms available</span>
-                        </div>
-                        <div class="room-description">${room.room_type.description || 'No description available'}</div>
-                        
-                        <div class="price-section">
+                    <div class="room-option-card">
+                        <div class="room-header">
                             <div>
-                                <span class="price">$${breakdown.total || 0}</span>
-                                <span class="price-label">total for ${room.stay_details.nights} nights</span>
+                                <span class="room-title">${roomTypeInfo.name || 'Room'}</span>
+                                <span class="rate-plan-badge">${ratePlanInfo.code || 'N/A'} - ${ratePlanInfo.name || 'Rate Plan'}</span>
                             </div>
-                            <div style="margin-top: 10px; color: #666;">
+                            <div>
+                                <span class="available-badge">
+                                    ${availability.available_rooms || 0} rooms available
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="occupancy-info">
+                            👥 Occupancy: ${roomTypeInfo.min_occupancy || 1} - ${roomTypeInfo.max_occupancy || 3} adults
+                        </div>
+                        
+                        <div class="price-breakdown">
+                            <div class="price-row">
+                                <span>Room Subtotal (${option.stay_details?.nights || 0} nights)</span>
+                                <span>$${breakdown.room_subtotal || 0}</span>
+                            </div>
+                            
+                            ${ratePlanInfo.meal_charge_per_night > 0 ? `
+                            <div class="price-row">
+                                <span>${ratePlanInfo.name} ($${ratePlanInfo.meal_charge_per_night}/night)</span>
+                                <span>+$${breakdown.meal_plan_charge || 0}</span>
+                            </div>
+                            ` : ''}
+                            
+                            ${appliedDiscounts.length > 0 ? appliedDiscounts.map(discount => `
+                            <div class="price-row" style="color: #dc3545;">
+                                <span>🎉 ${discount.description}</span>
+                                <span>-$${discount.amount}</span>
+                            </div>
+                            `).join('') : ''}
+                            
+                            <div class="price-row" style="border-top: 2px solid #ddd; margin-top: 8px; padding-top: 8px; font-weight: bold;">
+                                <span>Total</span>
+                                <span class="total-price">$${breakdown.total || 0}</span>
+                            </div>
+                            
+                            <div style="margin-top: 10px; color: #666; font-size: 14px;">
                                 Average nightly rate: $${nightlyRate.average || 0}
                             </div>
                         </div>
-                `;
-                
-                // Show discounts if any
-                if (appliedDiscounts.length > 0) {
-                    html += `<div class="discount">🎉 Discounts Applied:`;
-                    appliedDiscounts.forEach(discount => {
-                        html += `<br>• ${discount.description}: -$${discount.amount}`;
-                    });
-                    html += `<br><strong>Total Saved: $${discounts.total_saved || 0}</strong></div>`;
-                }
-                
-                // Show meal plan info
-                const mealPlanInfo = pricing.meal_plan || {};
-                if (mealPlanInfo.charge > 0) {
-                    html += `<div class="meal-plan">🍽️ ${mealPlanInfo.type}: +$${mealPlanInfo.charge} ($${mealPlanInfo.per_night}/night)</div>`;
-                }
-                
-                // Show daily breakdown (optional - can be collapsed)
-                html += `
-                        <details style="margin-top: 15px;">
-                            <summary style="cursor: pointer; color: #667eea; font-weight: 600;">View Daily Breakdown</summary>
-                            <div style="margin-top: 10px;">
-                                <table style="width: 100%; border-collapse: collapse;">
-                                    <thead>
-                                        <tr style="background: #e0e0e0;">
-                                            <th style="padding: 8px; text-align: left;">Date</th>
-                                            <th style="padding: 8px; text-align: left;">Available</th>
-                                            <th style="padding: 8px; text-align: left;">Price</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                `;
-                
-                // Add daily breakdown
-                const dailyBreakdown = room.availability.daily_breakdown || {};
-                for (const [date, details] of Object.entries(dailyBreakdown)) {
-                    html += `
-                        <tr>
-                            <td style="padding: 8px; border-bottom: 1px solid #e0e0e0;">${date}</td>
-                            <td style="padding: 8px; border-bottom: 1px solid #e0e0e0;">${details.available_rooms} rooms</td>
-                            <td style="padding: 8px; border-bottom: 1px solid #e0e0e0;">$${details.price}</td>
-                        </tr>
-                    `;
-                }
-                
-                html += `
-                                    </tbody>
-                                </table>
-                            </div>
+                        
+                        ${appliedDiscounts.length > 0 ? `
+                        <div class="discount-badge">
+                            💰 Total Saved: $${discounts.total_saved || 0}
+                        </div>
+                        ` : ''}
+                        
+                        <details>
+                            <summary>View Daily Breakdown</summary>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Available Rooms</th>
+                                        <th>Base Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${Object.entries(availability.daily_breakdown || {}).map(([date, details]) => `
+                                    <tr>
+                                        <td>${date}</td>
+                                        <td>${details.available_rooms}</td>
+                                        <td>$${details.price}</td>
+                                    </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
                         </details>
                     </div>
                 `;
@@ -488,7 +533,7 @@
             
             resultsDiv.innerHTML = html;
         }
-        
+
         // Add console logging for debugging
         console.log('Test page loaded successfully');
     </script>

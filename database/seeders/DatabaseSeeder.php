@@ -15,8 +15,10 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RoomTypesTableSeeder::class,
             RoomsTableSeeder::class,
-            InventoryTableSeeder::class,
+            RatePlansTableSeeder::class,
             DiscountsTableSeeder::class,
+            RatePlanDiscountsTableSeeder::class,
+            InventoryTableSeeder::class,
         ]);
     }
 }
